@@ -1,0 +1,43 @@
+# NODE.JS / BACKEND
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+
+# VARIABLES DE ENTORNO 
+.env
+.env.*
+!.env.example
+
+# ARCHIVOS SUBIDOS POR USUARIOS
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# FLUTTER / DART
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Archivos generados de Flutter
+**/flutter_*.png
+
+# SISTEMA OPERATIVO
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# EDITORES
+.vscode/
+.idea/
+*.iml
+
+# ARCHIVOS TEMPORALES
+*.log
+*.tmp
+*.bak
+*.swp

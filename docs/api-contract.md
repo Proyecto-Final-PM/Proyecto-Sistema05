@@ -17,8 +17,11 @@ La dirección cambia según el dispositivo desde el que se acceda al backend (em
 **Formato de comunicación:**
 
 - Protocolo: HTTP durante el desarrollo local.
+
 - Formato de datos: JSON (excepto la subida de imágenes, que usa `multipart/form-data`).
+
 - Codificación: UTF-8.
+
 - Autenticación: JWT mediante Bearer Token.
 
 ### 2.1. Resumen de endpoints
@@ -67,6 +70,7 @@ Los nombres visibles de los estados (por ejemplo, «En recolección») se resuel
 Las solicitudes se cancelan sin eliminar su registro, mediante el campo booleano `cancelada`:
 
 - `false`: la solicitud no está cancelada (valor por defecto).
+
 - `true`: la solicitud fue cancelada.
 
 Ejemplo:
@@ -84,8 +88,11 @@ Ejemplo:
 Reglas:
 
 - La cancelación no modifica `estado`, que conserva uno de los cuatro estados establecidos.
+
 - Una solicitud cancelada no puede modificarse, avanzar de estado ni finalizarse.
-- Solo se pueden cancelar solicitudes en estado `solicitada` (regla inicial por confirmar con el equipo).
+
+- Solo se pueden cancelar solicitudes en estado `solicitada` (regla de la versión 1.0).
+
 - La cancelación queda registrada en el historial con la acción `cancelacion`.
 
 ## 4. Autenticación
@@ -101,6 +108,7 @@ Los endpoints públicos (salud del servidor, registro e inicio de sesión) no re
 Los permisos dependen del rol:
 
 - `usuario`: crea, consulta, modifica y cancela sus propias solicitudes, y agrega evidencias a ellas.
+
 - `operador`: consulta todas las solicitudes, cambia su estado, las finaliza y agrega evidencias.
 
 El backend verifica los permisos de forma independiente de las restricciones visuales del frontend. El identificador del usuario siempre se obtiene del token, nunca del body.
@@ -126,6 +134,7 @@ Cuando ocurre un error, la API devuelve un código HTTP y un objeto JSON con la 
 | 409 | Conflicto con el estado actual del recurso |
 | 413 | Archivo demasiado grande |
 | 500 | Error interno del servidor |
+| 503 | Servicio no disponible (no hay conexión con la base de datos) |
 
 **Error común 401.** Todos los endpoints protegidos pueden responder:
 
@@ -147,7 +156,8 @@ Respuesta — 200 OK:
 
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "message": "API de Recolección de Reciclables funcionando"
 }
 ```
 
@@ -155,22 +165,23 @@ Respuesta — 200 OK:
 
 **Método:** GET · **Ruta:** `/api/health/db` · **Acceso:** Público
 
-Comprueba la conexión del backend con MySQL.
+Comprueba la conexión del backend con MySQL mediante una consulta de prueba.
 
 Respuesta — 200 OK:
 
 ```json
 {
   "status": "ok",
-  "base_de_datos": "conectada"
+  "message": "Conexión con la base de datos establecida correctamente"
 }
 ```
 
-Error — 500:
+Error — 503 Service Unavailable:
 
 ```json
 {
-  "error": "No se pudo conectar con la base de datos"
+  "status": "error",
+  "message": "No fue posible conectar con la base de datos"
 }
 ```
 
@@ -197,8 +208,11 @@ Body JSON:
 Validaciones:
 
 - El nombre es obligatorio.
+
 - El correo debe tener formato válido y no estar registrado.
+
 - La contraseña es obligatoria y tiene mínimo 8 caracteres.
+
 - El usuario no puede elegir su rol.
 
 Respuesta — 201 Created:
@@ -448,9 +462,13 @@ Body JSON:
 Validaciones:
 
 - La categoría debe existir.
+
 - La descripción y la dirección son obligatorias.
+
 - La latitud está entre -90 y 90, y la longitud entre -180 y 180.
+
 - `usuario_id` se obtiene del token, no del body.
+
 - El estado inicial es `solicitada`, `cancelada` es `false` y `cantidad_recolectada` es `null`.
 
 La fotografía se envía después con el endpoint de evidencias (sección 12.2), usando el `id` de la solicitud creada.
@@ -492,6 +510,7 @@ El backend registra la acción `creacion` en el historial.
 **Método:** GET · **Ruta:** `/api/solicitudes` · **Acceso:** `usuario` y `operador`
 
 - `usuario`: solo ve sus propias solicitudes.
+
 - `operador`: ve todas.
 
 Parámetros opcionales:
@@ -651,9 +670,13 @@ Las solicitudes pasan por cuatro estados: `solicitada`, `aceptada`, `en_recolecc
 `solicitada → aceptada → en_recoleccion → finalizada`
 
 - Una solicitud nueva comienza en `solicitada`.
+
 - No se permiten saltos ni retrocesos.
+
 - Una solicitud `finalizada` no puede cambiar de estado.
+
 - Una solicitud con `cancelada = true` no puede cambiar de estado.
+
 - Para finalizar, `cantidad_recolectada` debe ser mayor que cero.
 
 ### 10.2. Actualizar estado
@@ -726,8 +749,11 @@ Respuesta — 200 OK:
 Validaciones:
 
 - `cantidad_recolectada` es obligatoria al finalizar, numérica, en kilogramos y mayor que cero.
+
 - No se aceptan cantidades negativas ni iguales a cero.
+
 - Debe respetar la precisión `DECIMAL(10,2)` del almacenamiento: máximo dos decimales y valor máximo 99999999.99.
+
 - Si la validación falla, no cambia el estado ni la cantidad guardada.
 
 Errores específicos:
@@ -811,9 +837,13 @@ Errores:
 ### 11.3. Reglas del historial
 
 - Se genera automáticamente en cada creación, modificación, cambio de estado y cancelación.
+
 - Cada operación y su registro de historial se ejecutan en una misma transacción.
+
 - Los registros no se pueden modificar ni eliminar mediante la API.
+
 - Se ordenan por `fecha_cambio` ascendente y, en caso de empate, por `id` ascendente.
+
 - El `usuario` solo consulta el historial de sus solicitudes; el `operador` consulta cualquiera.
 
 ## 12. Evidencias fotográficas
@@ -864,11 +894,17 @@ Datos enviados:
 Validaciones:
 
 - La solicitud existe y no está cancelada.
+
 - El `usuario` solo puede subir a sus propias solicitudes y solo mientras estén en estado `solicitada`.
+
 - El `operador` puede subir a cualquier solicitud no cancelada.
+
 - El archivo es una imagen válida (se revisa su contenido, no solo la extensión): JPEG, PNG o WebP.
+
 - Tamaño máximo: 5 MB.
+
 - El nombre del archivo lo genera el servidor; el cliente no envía rutas.
+
 - `usuario_id` se obtiene del token.
 
 Respuesta — 201 Created:
@@ -954,19 +990,39 @@ Errores:
 ### 12.5. Reglas de seguridad
 
 - Un `usuario` solo sube y consulta evidencias de sus propias solicitudes.
+
 - El `operador` consulta las evidencias de cualquier solicitud.
+
 - Los nombres de archivo los genera el backend y no se aceptan rutas del cliente.
+
 - Las imágenes se validan por contenido y tipo; no se ejecutan como código.
+
 - No se expone la carpeta `uploads/` sin comprobar permisos.
+
 - La API no permite eliminar evidencias en esta fase.
 
-## 13. Pendientes por confirmar
+## 13. Estado de revisión y pendientes
 
-Antes de aprobar este contrato, se deben revisar estos puntos:
+### 13.1. Aspectos confirmados
 
-1. **Esquema MySQL:** que `solicitudes` tenga `descripcion`, `direccion`, `latitud`, `longitud`, `cancelada` y `cantidad_recolectada` (de tipo `DECIMAL(10,2)`); que `historial` tenga `usuario_id` y `accion`; y que `evidencias` guarde `usuario_id` y el nombre del archivo.
-2. **Cancelación:** confirmar que solo se cancela en estado `solicitada`.
-3. **Cuenta de operador:** crearla en `seed.sql` con la contraseña cifrada.
-4. **Contraseña:** confirmar el mínimo de 8 caracteres.
-5. **Imágenes:** confirmar formatos (JPEG, PNG, WebP) y tamaño máximo de 5 MB.
-6. **Unidad de la cantidad recolectada:** kilogramos.
+1. **Esquema MySQL:** se verificaron las cinco tablas: usuarios, categorias, solicitudes, evidencias e historial.
+
+2. **Relaciones:** se verificaron las llaves foráneas entre las tablas.
+
+3. **Cancelación:** existe el campo `cancelada` de tipo BOOLEAN en solicitudes.
+
+4. **Cantidad recolectada:** se utiliza `DECIMAL(10,2)` y se establece una restricción para cantidades positivas.
+
+5. **Cuenta de operador:** se agregó al script `seed.sql` con contraseña almacenada mediante hash bcrypt.
+
+6. **Categorías:** se agregaron Plástico, Papel, Vidrio y Metal.
+
+7. **Datos de prueba:** se agregaron dos usuarios y cuatro solicitudes con diferentes estados.
+
+8. **Conexión MySQL:** se implementó el pool de conexiones mediante mysql2.
+
+9. **Salud de la base de datos:** se implementó y probó `GET /api/health/db`.
+
+### 13.2. Seguimiento
+
+El avance de la implementación se registra en los Issues y en el tablero del proyecto. Los endpoints y reglas de este documento son la referencia para el backend y el frontend. Cualquier cambio posterior se propone mediante un Issue y se refleja en este archivo con un Pull Request, avisando a todo el equipo.

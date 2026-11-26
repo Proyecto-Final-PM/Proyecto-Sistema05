@@ -53,6 +53,45 @@ flutter run -d chrome
 ```
 Para ejecutar en Android o Windows, seleccionar el dispositivo compatible mediante `flutter devices`.
 
+## Configuración de la conexión con el backend (Flutter)
+
+La aplicación Flutter utiliza una URL base configurable para comunicarse con la API. La configuración se encuentra centralizada en `frontend/lib/core/api_config.dart`.
+
+### URLs según el dispositivo
+
+| Plataforma | URL base |
+|---|---|
+| Web (Chrome) | `http://localhost:3000/api` |
+| Windows | `http://localhost:3000/api` |
+| Emulador Android | `http://10.0.2.2:3000/api` |
+| Celular físico | `http://IP_DE_LA_PC:3000/api` |
+
+**Celular físico:** reemplazar `IP_DE_LA_PC` por la dirección IPv4 de la computadora donde se ejecuta el backend. Ambos dispositivos deben estar conectados a la misma red Wi-Fi. También es necesario permitir las conexiones al puerto 3000 en el firewall si corresponde.
+
+### Configuración personalizada
+
+La URL también puede modificarse al ejecutar Flutter, sin cambiar el código:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
+```
+
+Para Android físico, por ejemplo:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.100:3000/api
+```
+
+Reemplazar `192.168.1.100` por la IPv4 real de la computadora.
+
+### Requisitos de conexión
+
+- El servidor backend debe estar ejecutándose.
+- La API debe estar disponible en el puerto 3000.
+- La ruta de verificación de conexión es `GET /api/health`.
+- Si no se puede conectar al servidor, la aplicación muestra un mensaje de error en lugar de cerrarse.
+
+
 ### 3. Configurar el backend
 Desde la raíz del proyecto:
 

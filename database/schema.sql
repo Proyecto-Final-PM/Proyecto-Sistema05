@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS categorias (
     nombre VARCHAR(80) NOT NULL UNIQUE
 ) ENGINE=InnoDB;
 
--- 3. TABLA: solicitudes
+-- TABLA: solicitudes
 
 CREATE TABLE IF NOT EXISTS solicitudes (
     id INT AUTO_INCREMENT PRIMARY KEY,

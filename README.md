@@ -145,6 +145,51 @@ El proyecto se encuentra en su etapa de configuración inicial.
 - Estructura de base de datos preparada.
 - Funcionalidades del sistema pendientes de desarrollo.
 
+## Categorías y evidencias fotográficas
+
+### Endpoints de categorías
+
+| Método | Ruta | Permisos |
+|---|---|---|
+| GET | `/api/categorias` | Usuario autenticado |
+| GET | `/api/categorias/:id` | Usuario autenticado |
+| POST | `/api/categorias` | Operador |
+| PUT | `/api/categorias/:id` | Operador |
+
+Los nombres de las categorías son obligatorios, admiten hasta 80 caracteres y no pueden estar duplicados.
+
+### Endpoints de evidencias
+
+| Método | Ruta |
+|---|---|
+| POST | `/api/solicitudes/:id/evidencias` |
+| GET | `/api/solicitudes/:id/evidencias` |
+| GET | `/api/evidencias/:id/archivo` |
+
+### Carga de fotografías
+
+- Formato de petición: `multipart/form-data`.
+- Nombre del campo: `imagen`.
+- Formatos permitidos: JPEG, PNG y WebP.
+- Tamaño máximo: 5 MB.
+- Una fotografía por petición.
+- Validación mediante firmas binarias.
+- Nombres únicos generados mediante UUID.
+- Almacenamiento local en `backend/uploads/`.
+- Registro de metadatos en MySQL.
+
+La carpeta de almacenamiento se crea automáticamente cuando es necesario y está excluida del control de versiones mediante `.gitignore`.
+
+Las fotografías no son públicas. Para consultarlas se requiere un token JWT y permisos sobre la solicitud correspondiente.
+
+El propietario puede agregar evidencias únicamente cuando la solicitud está en estado `solicitada`. El operador puede agregar evidencias a solicitudes no canceladas.
+
+### Pruebas realizadas
+
+Se realizaron 15 comprobaciones de categorías y 36 comprobaciones de evidencias fotográficas mediante Postman, MySQL y el sistema de archivos.
+
+Se verificaron las operaciones exitosas, validaciones, permisos por rol, formatos de imagen, tamaño máximo, protección de archivos y persistencia después de reiniciar el servidor.
+
 ## Integrantes
 
 - Tania Paola Garcia Meza

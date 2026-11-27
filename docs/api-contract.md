@@ -357,7 +357,7 @@ Body JSON:
 }
 ```
 
-Validaciones: el nombre es obligatorio, no puede estar vacío y no puede repetirse.
+Validaciones: el nombre debe ser una cadena de texto obligatoria, no puede estar vacío, debe tener entre 1 y 80 caracteres y no puede repetirse. Se eliminan los espacios al inicio y al final antes de almacenarlo.
 
 Respuesta — 201 Created:
 
@@ -398,15 +398,24 @@ Respuesta — 200 OK:
 }
 ```
 
+Validaciones:
+
+- El identificador debe ser un número entero positivo.
+- El nombre debe ser una cadena de texto de entre 1 y 80 caracteres.
+- Se eliminan los espacios al inicio y al final.
+- La categoría debe existir.
+- El nombre no puede coincidir con el de otra categoría.
+
 Errores:
 
 | Código | Mensaje |
 |---|---|
+| 400 | `El identificador de la categoría no es válido` |
 | 400 | `El nombre de la categoría no es válido` |
 | 401 | Error común |
 | 403 | `No tienes permisos para modificar categorías` |
 | 404 | `Categoría no encontrada` |
-| 409 | `Ya existe otra categoría con ese nombre` |
+| 409 | `Ya existe otra categoría con ese nombre` ||
 
 ## 9. Solicitudes de recolección
 
@@ -851,7 +860,9 @@ Errores:
 
 Las evidencias son las fotografías asociadas a una solicitud. El usuario sube la foto del material al registrar su solicitud, y el operador puede agregar fotos durante la recolección.
 
-La imagen se envía con `multipart/form-data`. El servidor guarda el archivo en `backend/uploads/` con un nombre generado por él, y registra los metadatos en MySQL (tabla `evidencias`, con el nombre del archivo guardado).
+La imagen se envía con `multipart/form-data`. El servidor guarda el archivo en `backend/uploads/` con un nombre único generado mediante UUID y una extensión correspondiente al formato detectado. Los metadatos se registran en MySQL (tabla `evidencias`, con el nombre del archivo guardado).
+
+La carpeta `uploads/` se crea automáticamente cuando es necesario y está excluida del control de versiones mediante `.gitignore`.
 
 ### 12.1. Estructura de una evidencia
 
@@ -894,19 +905,17 @@ Datos enviados:
 
 Validaciones:
 
+- El identificador de la solicitud debe ser un número entero positivo.
 - La solicitud existe y no está cancelada.
-
 - El `usuario` solo puede subir a sus propias solicitudes y solo mientras estén en estado `solicitada`.
-
 - El `operador` puede subir a cualquier solicitud no cancelada.
-
-- El archivo es una imagen válida (se revisa su contenido, no solo la extensión): JPEG, PNG o WebP.
-
-- Tamaño máximo: 5 MB.
-
-- El nombre del archivo lo genera el servidor; el cliente no envía rutas.
-
+- Se admite únicamente un archivo por petición mediante el campo `imagen`.
+- Los formatos permitidos son JPEG, PNG y WebP.
+- El formato se comprueba mediante las firmas binarias del archivo, no únicamente mediante su extensión o tipo MIME declarado.
+- Tamaño máximo: 5 MB (5,242,880 bytes).
+- El nombre del archivo lo genera el servidor mediante UUID; el cliente no envía rutas.
 - `usuario_id` se obtiene del token.
+- Las imágenes rechazadas durante la validación no se almacenan ni generan registros en MySQL.
 
 Respuesta — 201 Created:
 
@@ -924,9 +933,9 @@ Respuesta — 201 Created:
 ```
 
 Errores:
-
 | Código | Mensaje |
 |---|---|
+| 400 | `El identificador de la solicitud no es válido` |
 | 400 | `El archivo enviado no es una imagen válida` |
 | 401 | Error común |
 | 403 | `No tienes permisos para subir evidencias a esta solicitud` |
@@ -959,7 +968,7 @@ Respuesta — 200 OK:
 ]
 ```
 
-Si no hay evidencias se devuelve `[]`.
+Si no hay evidencias se devuelve `[]`. Las evidencias se ordenan de manera ascendente por fecha de subida y, en caso de coincidencia, por identificador.
 
 Errores:
 
@@ -978,28 +987,33 @@ Devuelve el archivo de imagen. La carpeta `uploads/` no se expone públicamente:
 
 Respuesta — 200 OK: contenido de la imagen, con `Content-Type` `image/jpeg`, `image/png` o `image/webp`.
 
+Encabezados adicionales de seguridad de la respuesta:
+
+- `X-Content-Type-Options: nosniff`
+- `Cache-Control: private, no-store`
+
+Si el registro existe en la base de datos, pero el archivo físico no se encuentra disponible, se devuelve un error 404.
+
 En Flutter se puede mostrar con `Image.network`, enviando el token en el parámetro `headers`.
 
 Errores:
-
 | Código | Mensaje |
 |---|---|
+| 400 | `El identificador de la evidencia no es válido` |
 | 401 | Error común |
 | 403 | `No tienes permisos para ver esta evidencia` |
 | 404 | `Evidencia no encontrada` |
 
 ### 12.5. Reglas de seguridad
-
 - Un `usuario` solo sube y consulta evidencias de sus propias solicitudes.
-
 - El `operador` consulta las evidencias de cualquier solicitud.
-
-- Los nombres de archivo los genera el backend y no se aceptan rutas del cliente.
-
-- Las imágenes se validan por contenido y tipo; no se ejecutan como código.
-
-- No se expone la carpeta `uploads/` sin comprobar permisos.
-
+- Ningún usuario u operador puede agregar evidencias a una solicitud cancelada.
+- Los nombres de archivo los genera el backend mediante UUID y no se aceptan rutas del cliente.
+- El formato de las imágenes se comprueba mediante firmas binarias.
+- Se limita la carga a una imagen de máximo 5 MB por petición.
+- No se expone públicamente la carpeta `uploads/`.
+- La autenticación se verifica antes de procesar la carga del archivo.
+- Si ocurre un error durante el registro de una evidencia en la base de datos, el backend intenta eliminar el archivo almacenado para evitar archivos huérfanos.
 - La API no permite eliminar evidencias en esta fase.
 
 ## 13. Estado de revisión y pendientes

@@ -5,11 +5,15 @@ const pruebaRoutes = require('./routes/prueba.routes');
 const authRoutes = require('./routes/auth.routes');
 const solicitudesRoutes = require('./routes/solicitudes.routes');
 const { rutaNoEncontrada, manejarErrores } = require('./middlewares/errorHandler');
+const categoriasRoutes = require('./routes/categorias.routes');
+const evidenciasRoutes = require('./routes/evidencias.routes');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/categorias', categoriasRoutes);
+app.use('/api', evidenciasRoutes);
 
 // Estado general de la API
 app.get('/api/health', (req, res) => {

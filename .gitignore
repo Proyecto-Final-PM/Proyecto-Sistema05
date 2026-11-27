@@ -41,3 +41,6 @@ desktop.ini
 *.tmp
 *.bak
 *.swp
+
+# Fotografias de evidencias
+/backend/uploads/

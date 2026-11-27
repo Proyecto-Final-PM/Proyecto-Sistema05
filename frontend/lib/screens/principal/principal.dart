@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_routes.dart';
+import '../../models/enums.dart';
 import '../../providers/auth_provider.dart';
 
 class PrincipalScreen extends StatelessWidget {
@@ -9,15 +10,22 @@ class PrincipalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final usuario = context.watch<AuthProvider>().usuario;
+
     final botones = [
       ('Ir a Listado', AppRoutes.listado),
       ('Nueva Solicitud (Formulario)', AppRoutes.formulario),
-      ('Administración', AppRoutes.administracion),
       ('Perfil', AppRoutes.perfil),
     ];
 
+    if (usuario?.rol == RolUsuario.operador) {
+      botones.add(('Administración', AppRoutes.administracion));
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Pantalla Principal')),
+      appBar: AppBar(
+        title: const Text('Pantalla Principal'),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
@@ -45,7 +53,7 @@ class PrincipalScreen extends StatelessWidget {
                       (route) => false,
                     );
                   },
-                  child: const Text('Cerrar sesión (Login)'),
+                  child: const Text('Cerrar sesión'),
                 ),
               ],
             ),

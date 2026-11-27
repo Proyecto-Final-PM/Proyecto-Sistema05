@@ -83,39 +83,54 @@ class ApiService {
 // Manejo centralizado de errores
 class ApiException implements Exception {
   final String message;
+  final int? statusCode;
 
-  ApiException(this.message);
+  ApiException(this.message, {this.statusCode});
 
   factory ApiException.fromDio(DioException error) {
+    final statusCode = error.response?.statusCode;
+
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return ApiException('La conexión tardó demasiado. Intenta nuevamente.');
+        return ApiException(
+          'La conexión tardó demasiado. Intenta nuevamente.',
+          statusCode: statusCode,
+        );
 
       case DioExceptionType.connectionError:
         return ApiException(
           'No se pudo conectar con el servidor. '
           'Verifica que el backend esté funcionando.',
+          statusCode: statusCode,
         );
 
       case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-
         final responseData = error.response?.data;
 
         if (responseData is Map && responseData['error'] != null) {
-          return ApiException(responseData['error'].toString());
+          return ApiException(
+            responseData['error'].toString(),
+            statusCode: statusCode,
+          );
         }
 
-        return ApiException('Error del servidor (código $statusCode).');
+        return ApiException(
+          'Error del servidor (código $statusCode).',
+          statusCode: statusCode,
+        );
 
       case DioExceptionType.cancel:
-        return ApiException('La solicitud fue cancelada.');
+        return ApiException(
+          'La solicitud fue cancelada.',
+          statusCode: statusCode,
+        );
 
       default:
         return ApiException(
           'Ocurrió un error inesperado al comunicarse con el servidor.',
+          statusCode: statusCode,
         );
     }
   }

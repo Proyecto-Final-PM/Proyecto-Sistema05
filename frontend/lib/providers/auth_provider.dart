@@ -32,31 +32,39 @@ class AuthProvider extends ChangeNotifier {
         return;
       }
 
-      final preferences = await SharedPreferences.getInstance();
-      final usuarioJson = preferences.getString('usuario');
+      final respuesta = await _apiService.get('/auth/me');
 
-      if (usuarioJson == null || usuarioJson.isEmpty) {
-        await _apiService.eliminarToken();
-        _usuario = null;
-        return;
+      final datosUsuario = Map<String, dynamic>.from(respuesta);
+      final usuario = Usuario.fromJson(datosUsuario);
+
+      final preferences = await SharedPreferences.getInstance();
+
+      await preferences.setString(
+        'usuario',
+        jsonEncode(usuario.toJson()),
+      );
+
+      _usuario = usuario;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        await _limpiarSesion();
       }
-
-      final datosUsuario = jsonDecode(usuarioJson) as Map<String, dynamic>;
-
-      _usuario = Usuario.fromJson(datosUsuario);
     } catch (e) {
-      // Si la sesión está incompleta o dañada,
-      // se eliminan los datos para evitar inconsistencias.
-      await _apiService.eliminarToken();
-
-      final preferences = await SharedPreferences.getInstance();
-      await preferences.remove('usuario');
-
-      _usuario = null;
+      // Se conserva el token si ocurre un error inesperado.
+      debugPrint('Error al validar la sesión: $e');
     } finally {
       _isInitializing = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _limpiarSesion() async {
+    await _apiService.eliminarToken();
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove('usuario');
+
+    _usuario = null;
   }
 
   // Iniciar sesión.

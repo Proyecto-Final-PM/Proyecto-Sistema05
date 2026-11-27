@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../screens/administracion/administracion.dart';
 import '../screens/detalle/detalle.dart';
 import '../screens/formulario/formulario.dart';
@@ -6,9 +7,11 @@ import '../screens/listado/listado.dart';
 import '../screens/login/login.dart';
 import '../screens/perfil/perfil.dart';
 import '../screens/principal/principal.dart';
+import '../screens/registro/registro.dart';
 
 class AppRoutes {
   static const String login = '/login';
+  static const String registro = '/registro';
   static const String principal = '/principal';
   static const String listado = '/listado';
   static const String detalle = '/detalle';
@@ -19,6 +22,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes {
     return {
       login: (context) => const LoginScreen(),
+      registro: (context) => const RegistroScreen(),
       principal: (context) => const PrincipalScreen(),
       listado: (context) => const ListadoScreen(),
       detalle: (context) => const DetalleScreen(),

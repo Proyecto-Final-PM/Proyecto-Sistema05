@@ -3,6 +3,7 @@ const cors = require('cors');
 const db = require('./config/db');
 const pruebaRoutes = require('./routes/prueba.routes');
 const authRoutes = require('./routes/auth.routes');
+const solicitudesRoutes = require('./routes/solicitudes.routes');
 const { rutaNoEncontrada, manejarErrores } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -44,6 +45,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Rutas de autenticación
 app.use('/api/auth', authRoutes);
+app.use('/api/solicitudes', solicitudesRoutes);
 
 // Manejo de errores
 app.use(rutaNoEncontrada);

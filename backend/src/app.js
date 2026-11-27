@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
 const pruebaRoutes = require('./routes/prueba.routes');
+const authRoutes = require('./routes/auth.routes');
 const { rutaNoEncontrada, manejarErrores } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -36,11 +37,15 @@ app.get('/api/health/db', async (req, res) => {
     }
 });
 
-module.exports = app;
+// Rutas de prueba
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/prueba', pruebaRoutes);
 }
 
+// Rutas de autenticación
+app.use('/api/auth', authRoutes);
+
+// Manejo de errores
 app.use(rutaNoEncontrada);
 app.use(manejarErrores);
 

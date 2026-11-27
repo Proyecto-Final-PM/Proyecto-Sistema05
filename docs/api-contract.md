@@ -206,14 +206,11 @@ Body JSON:
 ```
 
 Validaciones:
-
-- El nombre es obligatorio.
-
-- El correo debe tener formato válido y no estar registrado.
-
-- La contraseña es obligatoria y tiene mínimo 8 caracteres.
-
-- El usuario no puede elegir su rol.
+- El nombre es obligatorio y admite un máximo de 100 caracteres.
+- El correo debe tener un formato válido y admite un máximo de 150 caracteres.
+- El correo se convierte a minúsculas antes de almacenarse.
+- La contraseña debe tener al menos 8 caracteres y no superar los 72 bytes, debido al límite de bcrypt.
+- Si se envía un campo `rol` en el registro público, se ignora y se asigna siempre el rol `usuario`.
 
 Respuesta — 201 Created:
 
@@ -277,6 +274,10 @@ Errores:
 | 401 | `Credenciales incorrectas` |
 
 Seguridad: el JWT se firma con `JWT_SECRET`, expira según `JWT_EXPIRES_IN` y contiene el id y el rol del usuario. Nunca se devuelve la contraseña ni su hash.
+
+- El correo se convierte a minúsculas antes de realizar la búsqueda.
+- La contraseña no debe superar los 72 bytes.
+- Tanto un correo inexistente como una contraseña incorrecta devuelven el mismo mensaje de error: `Credenciales incorrectas`.
 
 ### 7.3. Consultar usuario actual
 

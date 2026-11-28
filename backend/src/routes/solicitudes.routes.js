@@ -127,6 +127,14 @@ router.get(
     solicitudesController.obtenerPorId
 );
 
+// Consultar el historial de una solicitud.
+router.get(
+    '/:id/historial',
+    verificarToken,
+    validarId,
+    solicitudesController.obtenerHistorial
+);
+
 // Modificar una solicitud.
 router.put(
     '/:id',

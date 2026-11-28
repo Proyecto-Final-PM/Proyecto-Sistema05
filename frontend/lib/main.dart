@@ -6,6 +6,7 @@ import 'core/app_tema.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/auth_gate.dart';
+import 'providers/solicitud_provider.dart';
 
 void main() {
   runApp(
@@ -16,6 +17,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (context) => ThemeProvider()..inicializarTema(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => SolicitudProvider(),
         ),
       ],
       child: const MyApp(),

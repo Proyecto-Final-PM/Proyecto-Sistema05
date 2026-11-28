@@ -1,11 +1,12 @@
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../models/categoria.dart';
 import '../models/evidencia.dart';
+import '../models/historial.dart';
 import '../models/solicitud.dart';
 import '../services/solicitud_service.dart';
-import '../models/historial.dart';
 
 class SolicitudProvider extends ChangeNotifier {
   final SolicitudService _solicitudService = SolicitudService();
@@ -56,7 +57,7 @@ class SolicitudProvider extends ChangeNotifier {
   // Evidencias
   List<Evidencia> _evidencias = [];
   List<Evidencia> get evidencias => _evidencias;
-  
+
   // Historial
   List<Historial> _historial = [];
   List<Historial> get historial => _historial;
@@ -98,6 +99,34 @@ class SolicitudProvider extends ChangeNotifier {
     } finally {
       _cargandoSolicitudes = false;
       notifyListeners();
+    }
+  }
+
+  // Crear solicitud y refrescar el listado.
+  Future<bool> crearSolicitud({
+    required int categoriaId,
+    required String descripcion,
+    required String direccion,
+    required double latitud,
+    required double longitud,
+  }) async {
+    _errorSolicitudes = null;
+    notifyListeners();
+
+    try {
+      await _solicitudService.crearSolicitud(
+        categoriaId: categoriaId,
+        descripcion: descripcion,
+        direccion: direccion,
+        latitud: latitud,
+        longitud: longitud,
+      );
+      await cargarSolicitudes();
+      return true;
+    } catch (e) {
+      _errorSolicitudes = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 

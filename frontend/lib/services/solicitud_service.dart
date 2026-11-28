@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import '../core/api_config.dart';
 import '../models/categoria.dart';
 import '../models/evidencia.dart';
+import '../models/historial.dart';
 import '../models/solicitud.dart';
 import 'api_service.dart';
-import '../models/historial.dart';
 
 class SolicitudService {
   final ApiService _apiService = ApiService();
@@ -43,10 +45,44 @@ class SolicitudService {
     }
 
     return respuesta
-        .map((json) => Solicitud.fromJson(
-              Map<String, dynamic>.from(json),
-            ))
+        .map(
+          (json) => Solicitud.fromJson(
+            Map<String, dynamic>.from(json),
+          ),
+        )
         .toList();
+  }
+
+  // Crear una nueva solicitud.
+  Future<Solicitud> crearSolicitud({
+    required int categoriaId,
+    required String descripcion,
+    required String direccion,
+    required double latitud,
+    required double longitud,
+  }) async {
+    final respuesta = await _apiService.post(
+      '/solicitudes',
+      data: {
+        'categoria_id': categoriaId,
+        'descripcion': descripcion,
+        'direccion': direccion,
+        'latitud': latitud,
+        'longitud': longitud,
+      },
+    );
+
+    if (respuesta is Map && respuesta['solicitud'] is Map) {
+      return Solicitud.fromJson(
+        Map<String, dynamic>.from(respuesta['solicitud']),
+      );
+    }
+
+    if (respuesta is Map) {
+      return Solicitud.fromJson(Map<String, dynamic>.from(respuesta));
+    }
+
+    throw ApiException('No se pudo crear la solicitud.');
   }
 
   // Obtener el detalle de una solicitud.
@@ -73,9 +109,11 @@ class SolicitudService {
     }
 
     return respuesta
-        .map((json) => Historial.fromJson(
-              Map<String, dynamic>.from(json),
-            ))
+        .map(
+          (json) => Historial.fromJson(
+            Map<String, dynamic>.from(json),
+          ),
+        )
         .toList();
   }
 
@@ -93,9 +131,11 @@ class SolicitudService {
     }
 
     return respuesta
-        .map((json) => Categoria.fromJson(
-              Map<String, dynamic>.from(json),
-            ))
+        .map(
+          (json) => Categoria.fromJson(
+            Map<String, dynamic>.from(json),
+          ),
+        )
         .toList();
   }
 
@@ -110,9 +150,11 @@ class SolicitudService {
     }
 
     return respuesta
-        .map((json) => Evidencia.fromJson(
-              Map<String, dynamic>.from(json),
-            ))
+        .map(
+          (json) => Evidencia.fromJson(
+            Map<String, dynamic>.from(json),
+          ),
+        )
         .toList();
   }
 

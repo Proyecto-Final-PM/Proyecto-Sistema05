@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../core/app_routes.dart';
 import '../../models/solicitud.dart';
+import '../../providers/solicitud_provider.dart';
 
 class FormularioScreen extends StatefulWidget {
   final Solicitud? solicitudInicial;
@@ -172,28 +177,52 @@ class _FormularioScreenState extends State<FormularioScreen> {
     setState(() => _enviando = true);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 400));
+      final provider = context.read<SolicitudProvider>();
+      final categoriaId = _categoriaSeleccionadaId!;
+      final descripcion = _descripcionCtrl.text.trim();
+      final direccion = _direccionCtrl.text.trim();
+      final latitud = double.parse(_latitudCtrl.text.trim().replaceAll(',', '.'));
+      final longitud = double.parse(
+        _longitudCtrl.text.trim().replaceAll(',', '.'),
+      );
+
+      final ok = await provider.crearSolicitud(
+        categoriaId: categoriaId,
+        descripcion: descripcion,
+        direccion: direccion,
+        latitud: latitud,
+        longitud: longitud,
+      );
 
       if (!mounted) return;
+
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              provider.errorSolicitudes ?? 'No se pudo guardar la solicitud.',
+            ),
+          ),
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.check_circle_outline),
-              const SizedBox(width: 10),
+              Icon(Icons.check_circle_outline),
+              SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  _esEdicion
-                      ? 'Solicitud actualizada (modo de prueba).'
-                      : 'Solicitud registrada (modo de prueba).',
-                ),
+                child: Text('Solicitud registrada correctamente.'),
               ),
             ],
           ),
         ),
       );
-      Navigator.pushReplacementNamed(context, AppRoutes.listado);
+      unawaited(Navigator.pushReplacementNamed(context, AppRoutes.listado));
     } finally {
       if (mounted) {
         setState(() => _enviando = false);
@@ -317,7 +346,9 @@ class _FormularioScreenState extends State<FormularioScreen> {
     return Scaffold(
       backgroundColor: fondoPantalla,
       appBar: AppBar(
-        title: Text(_esEdicion ? 'Editar Solicitud' : 'Formulario de Recolección'),
+        title: Text(
+          _esEdicion ? 'Editar Solicitud' : 'Formulario de Recolección',
+        ),
         actions: [
           IconButton(
             tooltip: 'Limpiar campos',
@@ -333,7 +364,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
             constraints: const BoxConstraints(maxWidth: 660),
             child: Column(
               children: [
-                // Encabezado tipo badge similar a la estética de Mi perfil
                 Container(
                   width: 72,
                   height: 72,
@@ -363,7 +393,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
                 ),
                 const SizedBox(height: 18),
 
-                // Tarjeta principal dividida en secciones limpias
                 Card(
                   color: tarjetaColor,
                   elevation: isDark ? 0 : 2,
@@ -414,7 +443,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
                             const SizedBox(height: 18),
                           ],
 
-                          // Sección 1: Material y descripción
                           _tituloSeccion(
                             context: context,
                             icono: Icons.inventory_2_outlined,
@@ -422,7 +450,7 @@ class _FormularioScreenState extends State<FormularioScreen> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
-                            value: _categoriaSeleccionadaId,
+                            initialValue: _categoriaSeleccionadaId,
                             dropdownColor: isDark
                                 ? const Color(0xFF202923)
                                 : scheme.surface,
@@ -496,11 +524,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
                             children: _sugerenciasDescripcion
                                 .map(
                                   (texto) => ActionChip(
-                                    avatar: Icon(
-                                      Icons.auto_awesome,
-                                      size: 15,
-                                      color: scheme.primary,
-                                    ),
                                     label: Text(
                                       texto,
                                       style: textTheme.labelSmall,
@@ -520,7 +543,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
                             child: Divider(color: divisorColor, height: 1),
                           ),
 
-                          // Sección 2: Ubicación
                           _tituloSeccion(
                             context: context,
                             icono: Icons.pin_drop_outlined,
@@ -528,7 +550,7 @@ class _FormularioScreenState extends State<FormularioScreen> {
                             accionDerecha: TextButton.icon(
                               onPressed: _llenarCoordenadasEjemplo,
                               icon: const Icon(Icons.gps_fixed, size: 16),
-                              label: const Text('Ejemplo AGS'),
+                              label: const Text('AGS'),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -603,7 +625,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
                             child: Divider(color: divisorColor, height: 1),
                           ),
 
-                          // Sección 3: Evidencia fotográfica
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -666,7 +687,6 @@ class _FormularioScreenState extends State<FormularioScreen> {
 
                           const SizedBox(height: 22),
 
-                          // Botones principales
                           SizedBox(
                             height: 48,
                             child: FilledButton.icon(

@@ -1,5 +1,6 @@
 const solicitudesService = require('../services/solicitudes.service');
 const { validationResult } = require('express-validator');
+const historialService = require('../services/historial.service');
 
 // Validar los datos recibidos por la ruta.
 function validarPeticion(req, res, mensaje = 'Los datos proporcionados no son validos') {
@@ -116,6 +117,42 @@ async function obtenerPorId(req, res, next) {
     }
 }
 
+// Consultar el historial de una solicitud.
+async function obtenerHistorial(req, res, next) {
+    try {
+        const respuestaValidacion = validarId(req, res);
+        if (respuestaValidacion) return respuestaValidacion;
+
+        const solicitud = await solicitudesService.obtenerPorId(
+            Number(req.params.id)
+        );
+
+        if (!solicitud) {
+            return res.status(404).json({
+                error: 'Solicitud no encontrada'
+            });
+        }
+
+        if (
+            req.usuario.rol === 'usuario' &&
+            solicitud.usuario_id !== req.usuario.id
+        ) {
+            return res.status(403).json({
+                error: 'No tienes permisos para consultar esta solicitud'
+            });
+        }
+
+        const historial = await historialService.listarHistorial(
+            Number(req.params.id)
+        );
+
+        return res.status(200).json(historial);
+
+    } catch (error) {
+        next(error);
+    }
+}
+
 // Modificar una solicitud.
 async function actualizar(req, res, next) {
     try {
@@ -182,6 +219,7 @@ module.exports = {
     crear,
     listar,
     obtenerPorId,
+    obtenerHistorial,
     actualizar,
     cancelar
 };

@@ -41,9 +41,15 @@ class ApiService {
   }
 
   // GET
-  Future<dynamic> get(String endpoint) async {
+  Future<dynamic> get(
+    String endpoint, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
-      final response = await _dio.get(endpoint);
+      final response = await _dio.get(
+        endpoint,
+        queryParameters: queryParameters,
+      );
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
@@ -55,6 +61,16 @@ class ApiService {
     try {
       final response = await _dio.post(endpoint, data: data);
 
+      return response.data;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  // PATCH
+  Future<dynamic> patch(String endpoint, {dynamic data}) async {
+    try {
+      final response = await _dio.patch(endpoint, data: data);
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

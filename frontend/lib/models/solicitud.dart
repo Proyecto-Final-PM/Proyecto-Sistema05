@@ -34,11 +34,13 @@ class Solicitud {
       categoriaId: (json['categoria_id'] as num?)?.toInt() ?? 0,
       descripcion: json['descripcion'] as String? ?? '',
       direccion: json['direccion'] as String? ?? '',
-      latitud: (json['latitud'] as num?)?.toDouble() ?? 0.0,
-      longitud: (json['longitud'] as num?)?.toDouble() ?? 0.0,
+      latitud: double.tryParse(json['latitud']?.toString() ?? '') ?? 0.0,
+      longitud: double.tryParse(json['longitud']?.toString() ?? '') ?? 0.0,
       estado: EstadoSolicitud.fromJson(json['estado'] as String?),
       cancelada: json['cancelada'] as bool? ?? false,
-      cantidadRecolectada: (json['cantidad_recolectada'] as num?)?.toDouble(),
+      cantidadRecolectada: double.tryParse(
+        json['cantidad_recolectada']?.toString() ?? '',
+      ),
       fechaCreacion: json['fecha_creacion'] != null
           ? DateTime.tryParse(json['fecha_creacion'].toString())
           : null,

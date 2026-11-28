@@ -1,6 +1,12 @@
 const pool = require('../config/db');
 const historialService = require('./historial.service');
 
+const TRANSICIONES_VALIDAS = {
+    solicitada: 'aceptada',
+    aceptada: 'en_recoleccion',
+    en_recoleccion: 'finalizada'
+};
+
 // Crear errores controlados para que el controlador responda según el contrato.
 function crearError(status, mensaje) {
     const error = new Error(mensaje);
@@ -16,6 +22,31 @@ function normalizarSolicitud(solicitud) {
         ...solicitud,
         cancelada: Boolean(solicitud.cancelada)
     };
+}
+
+// Validar cantidad recolectada en kg al finalizar una solicitud.
+function validarCantidadRecolectada(cantidad) {
+    if (cantidad === undefined || cantidad === null || cantidad === '') {
+        throw crearError(400, 'La cantidad recolectada en kg es obligatoria al finalizar');
+    }
+
+    const texto = String(cantidad).trim();
+    if (!/^\d+(\.\d{1,2})?$/.test(texto)) {
+        throw crearError(
+            400,
+            'La cantidad recolectada debe ser un número mayor a 0 con máximo 2 decimales'
+        );
+    }
+
+    const numero = Number(texto);
+    if (!Number.isFinite(numero) || numero <= 0 || numero > 99999999.99) {
+        throw crearError(
+            400,
+            'La cantidad recolectada debe ser mayor a 0 y no superar 99999999.99 kg'
+        );
+    }
+
+    return Number(numero.toFixed(2));
 }
 
 // Obtener una solicitud por ID usando una conexión existente.
@@ -309,10 +340,81 @@ async function cancelar(id, usuarioId) {
     }
 }
 
+// Avanzar el estado de una solicitud de forma secuencial y registrar el historial.
+async function cambiarEstado(id, nuevoEstado, cantidadRecolectada, usuarioId) {
+    const conexion = await pool.getConnection();
+
+    try {
+        await conexion.beginTransaction();
+
+        const solicitudActual = await buscarPorId(conexion, id);
+
+        if (!solicitudActual) {
+            throw crearError(404, 'Solicitud no encontrada');
+        }
+
+        if (solicitudActual.cancelada) {
+            throw crearError(409, 'No se puede cambiar el estado de una solicitud cancelada');
+        }
+
+        const estadoEsperado = TRANSICIONES_VALIDAS[solicitudActual.estado];
+        if (!estadoEsperado || estadoEsperado !== nuevoEstado) {
+            throw crearError(
+                409,
+                `Transición de estado no válida de "${solicitudActual.estado}" a "${nuevoEstado}"`
+            );
+        }
+
+        if (nuevoEstado === 'finalizada') {
+            const pesoFinal = validarCantidadRecolectada(cantidadRecolectada);
+            await conexion.execute(
+                `UPDATE solicitudes
+                 SET estado = ?,
+                     cantidad_recolectada = ?
+                 WHERE id = ?`,
+                [nuevoEstado, pesoFinal, id]
+            );
+        } else {
+            await conexion.execute(
+                `UPDATE solicitudes
+                 SET estado = ?
+                 WHERE id = ?`,
+                [nuevoEstado, id]
+            );
+        }
+
+        await historialService.registrarHistorial(
+            conexion,
+            id,
+            usuarioId,
+            'cambio_estado',
+            solicitudActual.estado,
+            nuevoEstado
+        );
+
+        const solicitudActualizada = await buscarPorId(conexion, id);
+
+        await conexion.commit();
+
+        return solicitudActualizada;
+    } catch (error) {
+        try {
+            await conexion.rollback();
+        } catch (errorRollback) {
+            console.error('Error al revertir la transacción:', errorRollback);
+        }
+
+        throw error;
+    } finally {
+        conexion.release();
+    }
+}
+
 module.exports = {
     listar,
     obtenerPorId,
     crear,
     actualizar,
-    cancelar
+    cancelar,
+    cambiarEstado
 };

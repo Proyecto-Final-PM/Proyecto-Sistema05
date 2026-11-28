@@ -215,11 +215,50 @@ async function cancelar(req, res, next) {
     }
 }
 
+// Cambiar el estado de una solicitud (flujo de operador).
+async function cambiarEstado(req, res, next) {
+    try {
+        const respuestaId = validarId(req, res);
+        if (respuestaId) return respuestaId;
+
+        const respuestaValidacion = validarPeticion(
+            req,
+            res,
+            'Los datos para cambiar el estado no son válidos'
+        );
+        if (respuestaValidacion) return respuestaValidacion;
+
+        const { estado, cantidad_recolectada } = req.body;
+
+        const solicitud = await solicitudesService.cambiarEstado(
+            Number(req.params.id),
+            estado,
+            cantidad_recolectada,
+            req.usuario.id
+        );
+
+        return res.status(200).json({
+            mensaje: 'Estado de la solicitud actualizado correctamente',
+            solicitud
+        });
+
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({
+                error: error.message
+            });
+        }
+
+        next(error);
+    }
+}
+
 module.exports = {
     crear,
     listar,
     obtenerPorId,
     obtenerHistorial,
     actualizar,
-    cancelar
+    cancelar,
+    cambiarEstado
 };

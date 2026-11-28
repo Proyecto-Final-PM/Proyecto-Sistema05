@@ -12,14 +12,14 @@ class PrincipalScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final usuario = context.watch<AuthProvider>().usuario;
 
-    final botones = [
+    final botones = <(String, String)>[
       ('Ir a Listado', AppRoutes.listado),
       ('Nueva Solicitud (Formulario)', AppRoutes.formulario),
       ('Perfil', AppRoutes.perfil),
     ];
 
     if (usuario?.rol == RolUsuario.operador) {
-      botones.add(('Administración', AppRoutes.administracion));
+      botones.add(('Admin y seguimiento', AppRoutes.adminOperador));
     }
 
     return Scaffold(
@@ -37,7 +37,11 @@ class PrincipalScreen extends StatelessWidget {
               children: [
                 ...botones.map(
                   (item) => ElevatedButton(
-                    onPressed: () => Navigator.pushNamed(context, item.$2),
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      item.$2,
+                      arguments: usuario,
+                    ),
                     child: Text(item.$1),
                   ),
                 ),

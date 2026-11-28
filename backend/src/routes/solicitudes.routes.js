@@ -3,6 +3,7 @@ const { body, param, query } = require('express-validator');
 
 const solicitudesController = require('../controllers/solicitudes.controller');
 const { verificarToken } = require('../middlewares/auth');
+const { requiereRol } = require('../middlewares/roles');
 
 const router = express.Router();
 
@@ -152,6 +153,19 @@ router.patch(
     requiereUsuario('No tienes permisos para cancelar esta solicitud'),
     validarId,
     solicitudesController.cancelar
+);
+
+// Cambiar el estado de una solicitud (solo operador).
+router.patch(
+    '/:id/estado',
+    verificarToken,
+    requiereRol('operador'),
+    validarId,
+    [
+        body('estado').isIn(ESTADOS_VALIDOS),
+        body('cantidad_recolectada').optional()
+    ],
+    solicitudesController.cambiarEstado
 );
 
 module.exports = router;

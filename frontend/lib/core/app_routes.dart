@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/usuario.dart';
+import '../screens/admin_operador/operador.dart';
 import '../screens/administracion/administracion.dart';
 import '../screens/detalle/detalle.dart';
 import '../screens/formulario/formulario.dart';
@@ -17,6 +19,7 @@ class AppRoutes {
   static const String detalle = '/detalle';
   static const String formulario = '/formulario';
   static const String administracion = '/administracion';
+  static const String adminOperador = '/admin-operador';
   static const String perfil = '/perfil';
 
   static Map<String, WidgetBuilder> get routes {
@@ -28,6 +31,11 @@ class AppRoutes {
       detalle: (context) => const DetalleScreen(),
       formulario: (context) => const FormularioScreen(),
       administracion: (context) => const AdministracionScreen(),
+      adminOperador: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        final usuarioActual = args is Usuario ? args : null;
+        return AdminOperadorScreen(usuarioActual: usuarioActual);
+      },
       perfil: (context) => const PerfilScreen(),
     };
   }

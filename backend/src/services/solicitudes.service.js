@@ -309,10 +309,144 @@ async function cancelar(id, usuarioId) {
     }
 }
 
+// Cambiar el estado de una solicitud y registrar el movimiento en el historial.
+async function actualizarEstado(id, estadoNuevo, cantidadRecolectada, usuarioId) {
+    const conexion = await pool.getConnection();
+
+    try {
+        await conexion.beginTransaction();
+
+        const solicitudActual = await buscarPorId(conexion, id);
+
+        if (!solicitudActual) {
+            throw crearError(404, 'Solicitud no encontrada');
+        }
+
+        const estadosValidos = [
+            'solicitada',
+            'aceptada',
+            'en_recoleccion',
+            'finalizada'
+        ];
+
+        if (!estadosValidos.includes(estadoNuevo)) {
+            throw crearError(400, 'El estado proporcionado no es válido');
+        }
+
+        if (solicitudActual.cancelada || solicitudActual.estado === 'finalizada') {
+            throw crearError(
+                409,
+                'La transición de estado no está permitida'
+            );
+        }
+
+        const transiciones = {
+            solicitada: 'aceptada',
+            aceptada: 'en_recoleccion',
+            en_recoleccion: 'finalizada'
+        };
+
+        if (
+            estadoNuevo === 'finalizada' &&
+            solicitudActual.estado !== 'en_recoleccion'
+        ) {
+            throw crearError(
+                409,
+                'Solo pueden finalizarse solicitudes en recolección'
+            );
+        }
+
+        if (transiciones[solicitudActual.estado] !== estadoNuevo) {
+            throw crearError(
+                409,
+                'La transición de estado no está permitida'
+            );
+        }
+
+        if (estadoNuevo === 'finalizada') {
+            if (
+                cantidadRecolectada === undefined ||
+                cantidadRecolectada === null ||
+                cantidadRecolectada === ''
+            ) {
+                throw crearError(
+                    400,
+                    'La cantidad recolectada debe ser mayor que cero'
+                );
+            }
+
+            const cantidadTexto = String(cantidadRecolectada);
+
+            if (!/^\d+(\.\d{1,2})?$/.test(cantidadTexto)) {
+                throw crearError(
+                    400,
+                    'La cantidad recolectada debe tener máximo dos decimales'
+                );
+            }
+
+            const cantidad = Number(cantidadRecolectada);
+
+            if (!Number.isFinite(cantidad) || cantidad <= 0) {
+                throw crearError(
+                    400,
+                    'La cantidad recolectada debe ser mayor que cero'
+                );
+            }
+
+            if (cantidad > 99999999.99) {
+                throw crearError(
+                    400,
+                    'La cantidad recolectada no puede superar 99999999.99'
+                );
+            }
+            await conexion.execute(
+                `UPDATE solicitudes
+                 SET estado = ?, cantidad_recolectada = ?
+                 WHERE id = ?`,
+                [estadoNuevo, cantidad, id]
+            );
+        } else {
+            await conexion.execute(
+                `UPDATE solicitudes
+                 SET estado = ?
+                 WHERE id = ?`,
+                [estadoNuevo, id]
+            );
+        }
+
+        await historialService.registrarHistorial(
+            conexion,
+            id,
+            usuarioId,
+            'cambio_estado',
+            solicitudActual.estado,
+            estadoNuevo
+        );
+
+        const solicitudActualizada = await buscarPorId(conexion, id);
+
+        await conexion.commit();
+
+        return solicitudActualizada;
+
+    } catch (error) {
+        try {
+            await conexion.rollback();
+        } catch (errorRollback) {
+            console.error('Error al revertir la transacción:', errorRollback);
+        }
+
+        throw error;
+    } finally {
+        conexion.release();
+    }
+}
+
 module.exports = {
     listar,
     obtenerPorId,
     crear,
     actualizar,
-    cancelar
+    cancelar,
+    actualizarEstado
 };

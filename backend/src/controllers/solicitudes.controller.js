@@ -138,7 +138,7 @@ async function obtenerHistorial(req, res, next) {
             solicitud.usuario_id !== req.usuario.id
         ) {
             return res.status(403).json({
-                error: 'No tienes permisos para consultar esta solicitud'
+                error: 'No tienes permisos para consultar este historial'
             });
         }
 
@@ -215,11 +215,53 @@ async function cancelar(req, res, next) {
     }
 }
 
+// Cambiar el estado de una solicitud.
+async function actualizarEstado(req, res, next) {
+    try {
+        const errores = validationResult(req);
+
+        if (!errores.isEmpty()) {
+            return res.status(400).json({
+                error: errores.array()[0].msg
+            });
+        }
+
+        const { estado, cantidad_recolectada } = req.body;
+
+        const solicitud = await solicitudesService.actualizarEstado(
+            Number(req.params.id),
+            estado,
+            cantidad_recolectada,
+            req.usuario.id
+        );
+
+        const mensaje = estado === 'finalizada'
+            ? 'Recolección finalizada correctamente'
+            : 'Estado actualizado correctamente';
+
+        return res.status(200).json({
+            mensaje,
+            solicitud: {
+                id: solicitud.id,
+                estado: solicitud.estado,
+                cancelada: Boolean(solicitud.cancelada),
+                cantidad_recolectada: solicitud.cantidad_recolectada === null
+                    ? null
+                    : Number(solicitud.cantidad_recolectada)
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     crear,
     listar,
     obtenerPorId,
     obtenerHistorial,
     actualizar,
-    cancelar
+    cancelar,
+    actualizarEstado
 };

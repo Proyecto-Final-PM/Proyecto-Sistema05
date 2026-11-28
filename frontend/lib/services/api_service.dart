@@ -60,7 +60,16 @@ class ApiService {
   Future<dynamic> post(String endpoint, {dynamic data}) async {
     try {
       final response = await _dio.post(endpoint, data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 
+  // PUT
+  Future<dynamic> put(String endpoint, {dynamic data}) async {
+    try {
+      final response = await _dio.put(endpoint, data: data);
       return response.data;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

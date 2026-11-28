@@ -24,6 +24,16 @@ function requiereUsuario(mensaje) {
     };
 }
 
+// Permitir únicamente usuarios con rol operador.
+function requiereOperador(mensaje) {
+    return (req, res, next) => {
+        if (req.usuario.rol !== 'operador') {
+            return res.status(403).json({ error: mensaje });
+        }
+        next();
+    };
+}
+
 // Impedir que un usuario filtre solicitudes por usuario_id.
 function protegerFiltroUsuario(req, res, next) {
     if (
@@ -101,6 +111,61 @@ const validarFiltros = [
         .toInt()
 ];
 
+// Validar los datos para cambiar el estado de una solicitud.
+const validarCambioEstado = [
+    body('estado')
+        .isString()
+        .withMessage('El estado proporcionado no es válido')
+        .bail()
+        .isIn(ESTADOS_VALIDOS)
+        .withMessage('El estado proporcionado no es válido'),
+
+    body('cantidad_recolectada')
+        .custom((value, { req }) => {
+            if (req.body.estado !== 'finalizada') {
+                return true;
+            }
+
+            if (
+                value === undefined ||
+                value === null ||
+                value === ''
+            ) {
+                throw new Error(
+                    'La cantidad recolectada debe ser mayor que cero'
+                );
+            }
+
+            const texto = String(value);
+
+            if (!/^\d+(\.\d{1,2})?$/.test(texto)) {
+                throw new Error(
+                    'La cantidad recolectada debe tener máximo dos decimales'
+                );
+            }
+
+            const cantidad = Number(value);
+
+            if (
+                typeof value !== 'number' ||
+                !Number.isFinite(cantidad) ||
+                cantidad <= 0
+            ) {
+                throw new Error(
+                    'La cantidad recolectada debe ser mayor que cero'
+                );
+            }
+
+            if (cantidad > 99999999.99) {
+                throw new Error(
+                    'La cantidad recolectada no puede superar 99999999.99'
+                );
+            }
+
+            return true;
+        })
+];
+
 // Crear una solicitud.
 router.post(
     '/',
@@ -133,6 +198,16 @@ router.get(
     verificarToken,
     validarId,
     solicitudesController.obtenerHistorial
+);
+
+// Cambiar el estado de una solicitud (solo operadores).
+router.patch(
+    '/:id/estado',
+    verificarToken,
+    (req, res, next) => requiereOperador('No tienes permisos para cambiar el estado')(req, res, next),
+    validarId,
+    validarCambioEstado,
+    solicitudesController.actualizarEstado
 );
 
 // Modificar una solicitud.

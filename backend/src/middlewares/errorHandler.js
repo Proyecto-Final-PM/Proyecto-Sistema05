@@ -52,7 +52,14 @@ function manejarErrores(err, req, res, next) {
         });
     }
 
-    // Error interno del servidor
+    // Errores controlados por los servicios.
+    if (err.status && err.status >= 400 && err.status < 500) {
+        return res.status(err.status).json({
+            error: err.message
+        });
+    }
+
+    // Error interno del servidor.
     console.error(err);
 
     return res.status(500).json({

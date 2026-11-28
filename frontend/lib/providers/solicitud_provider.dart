@@ -6,6 +6,7 @@ import '../models/categoria.dart';
 import '../models/evidencia.dart';
 import '../models/historial.dart';
 import '../models/solicitud.dart';
+import '../services/api_service.dart';
 import '../services/solicitud_service.dart';
 
 class SolicitudProvider extends ChangeNotifier {
@@ -81,6 +82,32 @@ class SolicitudProvider extends ChangeNotifier {
   String? _errorCancelacion;
   String? get errorCancelacion => _errorCancelacion;
 
+  String _mensajeError(Object error) {
+    if (error is ApiException) {
+      switch (error.statusCode) {
+        case 400:
+          return error.message.isNotEmpty
+              ? error.message
+              : 'Datos inválidos (400). Revisa los campos.';
+        case 403:
+          return error.message.isNotEmpty
+              ? error.message
+              : 'No tienes permisos para realizar esta acción (403).';
+        case 404:
+          return error.message.isNotEmpty
+              ? error.message
+              : 'La solicitud no fue encontrada (404).';
+        case 409:
+          return error.message.isNotEmpty
+              ? error.message
+              : 'Esta solicitud ya no se puede modificar por su estado actual (409).';
+        default:
+          return error.message;
+      }
+    }
+    return error.toString();
+  }
+
   // Listar solicitudes aplicando los filtros actuales.
   Future<void> cargarSolicitudes() async {
     _cargandoSolicitudes = true;
@@ -95,7 +122,7 @@ class SolicitudProvider extends ChangeNotifier {
         cancelada: _canceladaFiltro,
       );
     } catch (e) {
-      _errorSolicitudes = e.toString();
+      _errorSolicitudes = _mensajeError(e);
     } finally {
       _cargandoSolicitudes = false;
       notifyListeners();
@@ -124,7 +151,40 @@ class SolicitudProvider extends ChangeNotifier {
       await cargarSolicitudes();
       return true;
     } catch (e) {
-      _errorSolicitudes = e.toString();
+      _errorSolicitudes = _mensajeError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Actualizar solicitud existente (PUT) y refrescar listado/detalle.
+  Future<bool> actualizarSolicitud({
+    required int id,
+    required int categoriaId,
+    required String descripcion,
+    required String direccion,
+    required double latitud,
+    required double longitud,
+  }) async {
+    _errorSolicitudes = null;
+    notifyListeners();
+
+    try {
+      await _solicitudService.actualizarSolicitud(
+        id: id,
+        categoriaId: categoriaId,
+        descripcion: descripcion,
+        direccion: direccion,
+        latitud: latitud,
+        longitud: longitud,
+      );
+      await cargarSolicitudes();
+      if (_solicitudSeleccionada?.id == id) {
+        await cargarDetalle(id);
+      }
+      return true;
+    } catch (e) {
+      _errorSolicitudes = _mensajeError(e);
       notifyListeners();
       return false;
     }
@@ -173,7 +233,7 @@ class SolicitudProvider extends ChangeNotifier {
     try {
       _categorias = await _solicitudService.listarCategorias();
     } catch (e) {
-      _errorCategorias = e.toString();
+      _errorCategorias = _mensajeError(e);
     } finally {
       _cargandoCategorias = false;
       notifyListeners();
@@ -191,7 +251,7 @@ class SolicitudProvider extends ChangeNotifier {
       _solicitudSeleccionada =
           await _solicitudService.obtenerSolicitud(id);
     } catch (e) {
-      _errorDetalle = e.toString();
+      _errorDetalle = _mensajeError(e);
     } finally {
       _cargandoDetalle = false;
       notifyListeners();
@@ -209,7 +269,7 @@ class SolicitudProvider extends ChangeNotifier {
       _evidencias =
           await _solicitudService.listarEvidencias(solicitudId);
     } catch (e) {
-      _errorEvidencias = e.toString();
+      _errorEvidencias = _mensajeError(e);
     } finally {
       _cargandoEvidencias = false;
       notifyListeners();
@@ -227,7 +287,7 @@ class SolicitudProvider extends ChangeNotifier {
       _historial =
           await _solicitudService.listarHistorial(solicitudId);
     } catch (e) {
-      _errorHistorial = e.toString();
+      _errorHistorial = _mensajeError(e);
     } finally {
       _cargandoHistorial = false;
       notifyListeners();
@@ -254,7 +314,7 @@ class SolicitudProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _errorCancelacion = e.toString();
+      _errorCancelacion = _mensajeError(e);
       return false;
     } finally {
       _cancelando = false;

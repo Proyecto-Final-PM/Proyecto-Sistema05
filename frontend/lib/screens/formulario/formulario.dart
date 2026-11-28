@@ -186,13 +186,22 @@ class _FormularioScreenState extends State<FormularioScreen> {
         _longitudCtrl.text.trim().replaceAll(',', '.'),
       );
 
-      final ok = await provider.crearSolicitud(
-        categoriaId: categoriaId,
-        descripcion: descripcion,
-        direccion: direccion,
-        latitud: latitud,
-        longitud: longitud,
-      );
+      final ok = _esEdicion
+          ? await provider.actualizarSolicitud(
+              id: widget.solicitudInicial!.id,
+              categoriaId: categoriaId,
+              descripcion: descripcion,
+              direccion: direccion,
+              latitud: latitud,
+              longitud: longitud,
+            )
+          : await provider.crearSolicitud(
+              categoriaId: categoriaId,
+              descripcion: descripcion,
+              direccion: direccion,
+              latitud: latitud,
+              longitud: longitud,
+            );
 
       if (!mounted) return;
 
@@ -211,12 +220,16 @@ class _FormularioScreenState extends State<FormularioScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle_outline),
-              SizedBox(width: 10),
+              const Icon(Icons.check_circle_outline),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text('Solicitud registrada correctamente.'),
+                child: Text(
+                  _esEdicion
+                      ? 'Solicitud actualizada correctamente.'
+                      : 'Solicitud registrada correctamente.',
+                ),
               ),
             ],
           ),

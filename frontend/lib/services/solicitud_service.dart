@@ -85,6 +85,39 @@ class SolicitudService {
     throw ApiException('No se pudo crear la solicitud.');
   }
 
+  // Actualizar una solicitud existente (PUT /api/solicitudes/:id).
+  Future<Solicitud> actualizarSolicitud({
+    required int id,
+    required int categoriaId,
+    required String descripcion,
+    required String direccion,
+    required double latitud,
+    required double longitud,
+  }) async {
+    final respuesta = await _apiService.put(
+      '/solicitudes/$id',
+      data: {
+        'categoria_id': categoriaId,
+        'descripcion': descripcion,
+        'direccion': direccion,
+        'latitud': latitud,
+        'longitud': longitud,
+      },
+    );
+
+    if (respuesta is Map && respuesta['solicitud'] is Map) {
+      return Solicitud.fromJson(
+        Map<String, dynamic>.from(respuesta['solicitud']),
+      );
+    }
+
+    if (respuesta is Map) {
+      return Solicitud.fromJson(Map<String, dynamic>.from(respuesta));
+    }
+
+    throw ApiException('No se pudo actualizar la solicitud.');
+  }
+
   // Obtener el detalle de una solicitud.
   Future<Solicitud> obtenerSolicitud(int id) async {
     final respuesta = await _apiService.get('/solicitudes/$id');
